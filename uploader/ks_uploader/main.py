@@ -5,15 +5,16 @@ from playwright.async_api import Playwright, async_playwright
 import os
 import asyncio
 
-from conf import LOCAL_CHROME_PATH, LOCAL_CHROME_HEADLESS
+from conf import LOCAL_CHROME_HEADLESS
 from utils.base_social_media import set_init_script
+from utils.browser import build_launch_options
 from utils.files_times import get_absolute_path
 from utils.log import kuaishou_logger
 
 
 async def cookie_auth(account_file):
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=LOCAL_CHROME_HEADLESS)
+        browser = await playwright.chromium.launch(**build_launch_options(LOCAL_CHROME_HEADLESS))
         context = await browser.new_context(storage_state=account_file)
         context = await set_init_script(context)
         # 创建一个新的页面
@@ -42,12 +43,7 @@ async def ks_setup(account_file, handle=False):
 
 async def get_ks_cookie(account_file):
     async with async_playwright() as playwright:
-        options = {
-            'args': [
-                '--lang en-GB'
-            ],
-            'headless': LOCAL_CHROME_HEADLESS,  # Set headless option here
-        }
+        options = build_launch_options(LOCAL_CHROME_HEADLESS, extra={'args': ['--lang en-GB']})
         # Make sure to run headed.
         browser = await playwright.chromium.launch(**options)
         # Setup context however you like.
@@ -69,7 +65,6 @@ class KSVideo(object):
         self.publish_date = publish_date
         self.account_file = account_file
         self.date_format = '%Y-%m-%d %H:%M'
-        self.local_executable_path = LOCAL_CHROME_PATH
         self.headless = LOCAL_CHROME_HEADLESS
 
     async def handle_upload_error(self, page):
@@ -78,16 +73,8 @@ class KSVideo(object):
 
     async def upload(self, playwright: Playwright) -> None:
         # 使用 Chromium 浏览器启动一个浏览器实例
-        print(self.local_executable_path)
-        if self.local_executable_path:
-            browser = await playwright.chromium.launch(
-                headless=self.headless,
-                executable_path=self.local_executable_path,
-            )
-        else:
-            browser = await playwright.chromium.launch(
-                headless=self.headless
-            )  # 创建一个浏览器上下文，使用指定的 cookie 文件
+        launch_options = build_launch_options(self.headless)
+        browser = await playwright.chromium.launch(**launch_options)
         context = await browser.new_context(storage_state=f"{self.account_file}")
         context = await set_init_script(context)
         # 创建一个新的页面

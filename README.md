@@ -36,6 +36,8 @@
 ### 核心功能
 
 -   [x] 定时上传 (Cron Job / Scheduled Upload)
+-   [x] 素材矩阵分发（全量复制 / 轮询 / 一对一）
+-   [x] 内置浏览器检测与代理/IP 轮换守护
 -   [ ] Cookie 管理 (部分实现，持续优化中)
 -   [ ] 国外平台 Proxy 设置 (部分实现)
 
@@ -111,7 +113,9 @@
 4.  **修改配置文件**:
     复制 `conf.example.py` 并重命名为 `conf.py`。
     在 `conf.py` 中，您需要配置以下内容：
-    -   `LOCAL_CHROME_PATH`: 本地 Chrome 浏览器的路径，比如 `C:\Program Files\Google\Chrome\Application\chrome.exe` 保存。
+    -   `LOCAL_CHROME_PATH`: （可选）指定本地 Chrome/Chromium 路径；若留空，系统会自动搜索常见路径或使用 Playwright 自带浏览器。
+    -   `PROXY_POOL`: 代理/拨号出口列表，支持字符串或 `{"server": "...", "username": "", "password": ""}` 形式，可用于定时切换 IP。
+    -   `PROXY_ROTATE_INTERVAL`: 代理轮换间隔（秒），同时也可通过 `/proxy/rotate` 接口强制切换。
     
     **临时解决方案**
 

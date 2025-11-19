@@ -13,11 +13,31 @@ from conf import BASE_DIR
 from myUtils.login import get_tencent_cookie, douyin_cookie_gen, get_ks_cookie, xiaohongshu_cookie_gen
 from myUtils.postVideo import post_video_tencent, post_video_DouYin, post_video_ks, post_video_xhs
 
+# 导入增强功能模块
+try:
+    from sau_backend.enhanced_api import enhanced_api
+    from myUtils.task_scheduler import start_scheduler, stop_scheduler
+    ENHANCED_FEATURES_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️ 增强功能模块加载失败: {e}")
+    ENHANCED_FEATURES_AVAILABLE = False
+
 active_queues = {}
 app = Flask(__name__)
 
+# 确保运行时目录存在
+try:
+    from utils.runtime import ensure_runtime_directories
+    ensure_runtime_directories()
+except:
+    pass
+
 #允许所有来源跨域访问
 CORS(app)
+
+# 注册增强功能蓝图
+if ENHANCED_FEATURES_AVAILABLE:
+    app.register_blueprint(enhanced_api)
 
 # 限制上传文件大小为160MB
 app.config['MAX_CONTENT_LENGTH'] = 160 * 1024 * 1024
@@ -399,22 +419,27 @@ def postVideo():
     videos_per_day = data.get('videosPerDay')
     daily_times = data.get('dailyTimes')
     start_days = data.get('startDays')
+    distribution_mode = data.get('distributionMode', 'replicate')
     # 打印获取到的数据（仅作为示例）
     print("File List:", file_list)
     print("Account List:", account_list)
     match type:
         case 1:
-            post_video_xhs(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                               start_days)
+            post_video_xhs(
+                title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                start_days, distribution_mode=distribution_mode)
         case 2:
-            post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                               start_days, is_draft)
+            post_video_tencent(
+                title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                start_days, is_draft, distribution_mode=distribution_mode)
         case 3:
-            post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                      start_days, thumbnail_path, productLink, productTitle)
+            post_video_DouYin(
+                title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                start_days, thumbnail_path, productLink, productTitle, distribution_mode=distribution_mode)
         case 4:
-            post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                      start_days)
+            post_video_ks(
+                title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                start_days, distribution_mode=distribution_mode)
     # 返回响应给客户端
     return jsonify(
         {
@@ -484,6 +509,7 @@ def postVideoBatch():
         videos_per_day = data.get('videosPerDay')
         daily_times = data.get('dailyTimes')
         start_days = data.get('startDays')
+        distribution_mode = data.get('distributionMode', 'replicate')
         # 打印获取到的数据（仅作为示例）
         print("File List:", file_list)
         print("Account List:", account_list)
@@ -491,14 +517,17 @@ def postVideoBatch():
             case 1:
                 return
             case 2:
-                post_video_tencent(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                                   start_days)
+                post_video_tencent(
+                    title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                    start_days, distribution_mode=distribution_mode)
             case 3:
-                post_video_DouYin(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                          start_days, productLink, productTitle)
+                post_video_DouYin(
+                    title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                    start_days, productLink, productTitle, distribution_mode=distribution_mode)
             case 4:
-                post_video_ks(title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
-                          start_days)
+                post_video_ks(
+                    title, file_list, tags, account_list, category, enableTimer, videos_per_day, daily_times,
+                    start_days, distribution_mode=distribution_mode)
     # 返回响应给客户端
     return jsonify(
         {
@@ -506,6 +535,25 @@ def postVideoBatch():
             "msg": None,
             "data": None
         }), 200
+
+
+@app.route('/proxy/status', methods=['GET'])
+def proxy_status():
+    proxy_info = global_proxy_manager.status()
+    if not proxy_info:
+        return jsonify({"code": 200, "msg": "proxy rotation disabled", "data": None}), 200
+    return jsonify({"code": 200, "msg": "success", "data": proxy_info}), 200
+
+
+@app.route('/proxy/rotate', methods=['POST'])
+def proxy_rotate():
+    proxy_info = global_proxy_manager.force_rotate()
+    if not proxy_info:
+        return jsonify({"code": 400, "msg": "proxy rotation disabled", "data": None}), 400
+    masked = dict(proxy_info)
+    if masked.get("password"):
+        masked["password"] = "***"
+    return jsonify({"code": 200, "msg": "rotated", "data": masked}), 200
 
 # Cookie文件上传API
 @app.route('/uploadCookie', methods=['POST'])
@@ -663,4 +711,15 @@ def sse_stream(status_queue):
             time.sleep(0.1)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0' ,port=5409)
+    # 启动任务调度器
+    if ENHANCED_FEATURES_AVAILABLE:
+        print("🚀 启动增强功能任务调度器...")
+        start_scheduler()
+    
+    try:
+        app.run(host='0.0.0.0', port=5409)
+    finally:
+        # 停止任务调度器
+        if ENHANCED_FEATURES_AVAILABLE:
+            print("🛑 停止任务调度器...")
+            stop_scheduler()

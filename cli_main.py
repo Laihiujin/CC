@@ -5,6 +5,7 @@ from os.path import exists
 from pathlib import Path
 
 from conf import BASE_DIR
+from utils.runtime import ensure_runtime_directories
 from uploader.douyin_uploader.main import douyin_setup, DouYinVideo
 from uploader.ks_uploader.main import ks_setup, KSVideo
 from uploader.tencent_uploader.main import weixin_setup, TencentVideo
@@ -24,6 +25,7 @@ def parse_schedule(schedule_raw):
 
 
 async def main():
+    ensure_runtime_directories()
     # 主解析器
     parser = argparse.ArgumentParser(description="Upload video to multiple social-media.")
     parser.add_argument("platform", metavar='platform', choices=get_supported_social_media(), help="Choose social-media platform: douyin tencent tiktok kuaishou")

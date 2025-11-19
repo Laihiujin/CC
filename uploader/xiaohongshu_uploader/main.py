@@ -5,14 +5,15 @@ from playwright.async_api import Playwright, async_playwright, Page
 import os
 import asyncio
 
-from conf import LOCAL_CHROME_PATH, LOCAL_CHROME_HEADLESS
+from conf import LOCAL_CHROME_HEADLESS
 from utils.base_social_media import set_init_script
+from utils.browser import build_launch_options
 from utils.log import xiaohongshu_logger
 
 
 async def cookie_auth(account_file):
     async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(headless=LOCAL_CHROME_HEADLESS)
+        browser = await playwright.chromium.launch(**build_launch_options(LOCAL_CHROME_HEADLESS))
         context = await browser.new_context(storage_state=account_file)
         context = await set_init_script(context)
         # 创建一个新的页面
@@ -47,10 +48,7 @@ async def xiaohongshu_setup(account_file, handle=False):
 
 async def xiaohongshu_cookie_gen(account_file):
     async with async_playwright() as playwright:
-        options = {
-            'headless': LOCAL_CHROME_HEADLESS
-        }
-        # Make sure to run headed.
+        options = build_launch_options(LOCAL_CHROME_HEADLESS)
         browser = await playwright.chromium.launch(**options)
         # Setup context however you like.
         context = await browser.new_context()  # Pass any options
@@ -71,7 +69,6 @@ class XiaoHongShuVideo(object):
         self.publish_date = publish_date
         self.account_file = account_file
         self.date_format = '%Y年%m月%d日 %H:%M'
-        self.local_executable_path = LOCAL_CHROME_PATH
         self.headless = LOCAL_CHROME_HEADLESS
         self.thumbnail_path = thumbnail_path
 
@@ -108,10 +105,7 @@ class XiaoHongShuVideo(object):
 
     async def upload(self, playwright: Playwright) -> None:
         # 使用 Chromium 浏览器启动一个浏览器实例
-        if self.local_executable_path:
-            browser = await playwright.chromium.launch(headless=self.headless, executable_path=self.local_executable_path)
-        else:
-            browser = await playwright.chromium.launch(headless=self.headless)
+        browser = await playwright.chromium.launch(**build_launch_options(self.headless))
         # 创建一个浏览器上下文，使用指定的 cookie 文件
         context = await browser.new_context(
             viewport={"width": 1600, "height": 900},
@@ -364,5 +358,4 @@ class XiaoHongShuVideo(object):
     async def main(self):
         async with async_playwright() as playwright:
             await self.upload(playwright)
-
 

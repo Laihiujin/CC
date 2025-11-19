@@ -3,7 +3,7 @@ python 版本：3.10
 1. 安装依赖
     pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 2. 删除 db 目录下 database.db（如果没有直接运行createTable.py即可），运行 createTable.py 重新建库，避免出现脏数据
-3. 修改 conf.py最下方 LOCAL_CHROME_PATH 为本地 chrome 浏览器地址
+3. 如需自定义浏览器路径，可在 conf.py 中设置 `LOCAL_CHROME_PATH`（默认会自动探测/使用 Playwright 浏览器）。同时可以配置 `PROXY_POOL` & `PROXY_ROTATE_INTERVAL` 以支持自动换 IP。
 4. 运行根目录的 sau_backend.py
 5. type字段（平台标识） 1 小红书 2 视频号 3 抖音 4 快手
 ## 接口说明
@@ -22,12 +22,16 @@ python 版本：3.10
     videos_per_day 每天发布几个视频
     daily_times    每天发布视频的时间，整形列表，与上面列表长度保持一致
     start_days     开始天数，0 代表明天开始定时发布 1 代表明天的明天
+    distributionMode 素材投放策略，可选 replicate(默认，所有账号都投) / round_robin(轮询分发) / one_to_one(按顺序一对一配对)
     以上三个字段是我的理解，不知道对不对，也不知道原作者为什么要这么设置
+5. 代理轮换
+    - GET  /proxy/status   查看当前生效的代理（已自动脱敏）
+    - POST /proxy/rotate   手动触发下一条代理，便于在批量投放中强制切换 IP
 ## 数据库说明
 见当前目录下 db目录，py文件是创建脚本，db文件是sqlite数据库
 ## 文件说明
-cookiesFile文件夹 存储cookie文件
+cookiesFile文件夹 存储cookie文件（系统首次运行时会自动创建）
 myUtils文件夹 存储自己封装的python模块
-videoFile文件夹 文件上传存放位置
+videoFile文件夹 文件上传存放位置（系统首次运行时会自动创建）
 web 文件夹 web路由目录
-conf.py 全局配置，记得修改配置中 LOCAL_CHROME_PATH 为本机浏览器地址
+conf.py 全局配置，可按需设置 LOCAL_CHROME_PATH / PROXY_POOL / PROXY_ROTATE_INTERVAL

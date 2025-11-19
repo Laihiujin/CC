@@ -8,6 +8,7 @@ from utils.base_social_media import set_init_script
 import uuid
 from pathlib import Path
 from conf import BASE_DIR, LOCAL_CHROME_HEADLESS
+from utils.browser import build_launch_options
 
 # 抖音登录
 async def douyin_cookie_gen(id,status_queue):
@@ -17,9 +18,7 @@ async def douyin_cookie_gen(id,status_queue):
         if page.url != original_url:
             url_changed_event.set()
     async with async_playwright() as playwright:
-        options = {
-            'headless': LOCAL_CHROME_HEADLESS
-        }
+        options = build_launch_options(LOCAL_CHROME_HEADLESS)
         # Make sure to run headed.
         browser = await playwright.chromium.launch(**options)
         # Setup context however you like.
@@ -84,12 +83,7 @@ async def get_tencent_cookie(id,status_queue):
             url_changed_event.set()
 
     async with async_playwright() as playwright:
-        options = {
-            'args': [
-                '--lang en-GB'
-            ],
-            'headless': LOCAL_CHROME_HEADLESS,  # Set headless option here
-        }
+        options = build_launch_options(LOCAL_CHROME_HEADLESS, extra={'args': ['--lang en-GB']})
         # Make sure to run headed.
         browser = await playwright.chromium.launch(**options)
         # Setup context however you like.
@@ -161,12 +155,7 @@ async def get_ks_cookie(id,status_queue):
         if page.url != original_url:
             url_changed_event.set()
     async with async_playwright() as playwright:
-        options = {
-            'args': [
-                '--lang en-GB'
-            ],
-            'headless': LOCAL_CHROME_HEADLESS,  # Set headless option here
-        }
+        options = build_launch_options(LOCAL_CHROME_HEADLESS, extra={'args': ['--lang en-GB']})
         # Make sure to run headed.
         browser = await playwright.chromium.launch(**options)
         # Setup context however you like.
@@ -237,12 +226,7 @@ async def xiaohongshu_cookie_gen(id,status_queue):
             url_changed_event.set()
 
     async with async_playwright() as playwright:
-        options = {
-            'args': [
-                '--lang en-GB'
-            ],
-            'headless': LOCAL_CHROME_HEADLESS,  # Set headless option here
-        }
+        options = build_launch_options(LOCAL_CHROME_HEADLESS, extra={'args': ['--lang en-GB']})
         # Make sure to run headed.
         browser = await playwright.chromium.launch(**options)
         # Setup context however you like.
